@@ -33,6 +33,11 @@ export interface AccommodationItem {
   nearest_landmark?: string
   created_at?: string
   description?: string
+  room_features?: string[]
+  house_rules?: string[]
+  notice_period_days?: number
+  approximate_location?: string
+  tagline?: string
 }
 
 interface AccommodationsViewProps {

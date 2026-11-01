@@ -15,7 +15,6 @@ import {
   Loader2,
   Calendar,
   Utensils,
-  Users,
 } from "lucide-react"
 import { uploadListingImage, validateImageFile } from "@/lib/supabase/storage"
 

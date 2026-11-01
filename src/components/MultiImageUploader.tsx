@@ -3,7 +3,6 @@
 import React, { useState, useRef } from "react"
 import {
   UploadCloud,
-  X,
   Loader2,
   CheckCircle2,
   AlertCircle,

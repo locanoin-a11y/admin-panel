@@ -1,4 +1,5 @@
 "use client"
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import React, { useState, useEffect } from "react"
 import {
@@ -12,9 +13,7 @@ import {
   Users,
   Utensils,
   Eye,
-  Check,
   AlertCircle,
-  MapPin,
 } from "lucide-react"
 import { AccommodationItem } from "./AccommodationsView"
 import { MessItem } from "./MessesView"
@@ -66,7 +65,6 @@ export function EditListingModal({
   mode,
   onSaveAccommodation,
   onSaveMess,
-  onReplaceListingImage,
 }: EditListingModalProps) {
   // Shared fields
   const [name, setName] = useState("")
@@ -86,6 +84,10 @@ export function EditListingModal({
   const [amenitiesStr, setAmenitiesStr] = useState("")
   const [sharingStr, setSharingStr] = useState("")
   const [foodOption, setFoodOption] = useState("Optional / Available")
+  const [roomFeaturesStr, setRoomFeaturesStr] = useState("")
+  const [houseRulesStr, setHouseRulesStr] = useState("")
+  const [noticePeriodDays, setNoticePeriodDays] = useState<string | number>(30)
+  const [tagline, setTagline] = useState("")
 
   // Mess specific
   const [cuisine, setCuisine] = useState("South Indian & Coastal")
@@ -138,6 +140,7 @@ export function EditListingModal({
     if (item) {
       setName(item.name || "")
       setArea(item.area || "")
+      setApproximateLocation(item.approximate_location || "")
       setNearestLandmark(item.nearest_landmark || "")
       setStatus(item.status || "published")
       setDescription(item.description || "")
@@ -156,6 +159,10 @@ export function EditListingModal({
         setAmenitiesStr(acc.amenities?.join(", ") || "")
         setSharingStr(acc.sharing_options?.join(", ") || "")
         setFoodOption(acc.food_option || "Optional / Available")
+        setRoomFeaturesStr(acc.room_features?.join(", ") || "")
+        setHouseRulesStr(acc.house_rules?.join(", ") || "")
+        setNoticePeriodDays(acc.notice_period_days ?? 30)
+        setTagline(acc.tagline || "")
       } else {
         const mess = item as MessItem
         setCuisine(mess.cuisine || "South Indian & Coastal")
@@ -215,6 +222,7 @@ export function EditListingModal({
 
       if (mode === "accommodation") {
         setArea("Balmatta")
+        setApproximateLocation("")
         setMonthlyRentFrom(8000)
         setSecurityDeposit(16000)
         setGender("Boys")
@@ -222,6 +230,10 @@ export function EditListingModal({
         setAmenitiesStr("Wi-Fi, 24/7 Power, CCTV, RO Water")
         setSharingStr("Single, Double")
         setFoodOption("Optional / Available")
+        setRoomFeaturesStr("Attached Bathroom, Bed & Mattress, Study Table, Wardrobe")
+        setHouseRulesStr("Gate closes at 10:30 PM, Visitors allowed till 8 PM, No smoking")
+        setNoticePeriodDays(30)
+        setTagline("")
       } else {
         setArea("Kadri")
         setApproximateLocation("")
@@ -308,11 +320,19 @@ export function EditListingModal({
         const sharing_options = sharingStr
           ? sharingStr.split(",").map((s) => s.trim()).filter(Boolean)
           : []
+        const room_features = roomFeaturesStr
+          ? roomFeaturesStr.split(",").map((s) => s.trim()).filter(Boolean)
+          : []
+        const house_rules = houseRulesStr
+          ? houseRulesStr.split(",").map((s) => s.trim()).filter(Boolean)
+          : []
 
         await onSaveAccommodation({
           id: item?.id,
           name: name.trim(),
+          tagline: tagline.trim(),
           area: area.trim(),
+          approximate_location: approximateLocation.trim(),
           nearest_landmark: nearestLandmark.trim(),
           monthly_rent_from: Number(monthlyRentFrom),
           security_deposit: Number(securityDeposit || 0),
@@ -320,6 +340,9 @@ export function EditListingModal({
           type: accType,
           amenities,
           sharing_options,
+          room_features,
+          house_rules,
+          notice_period_days: Number(noticePeriodDays) || 30,
           food_option: foodOption,
           status,
           description: description.trim(),
@@ -728,6 +751,42 @@ export function EditListingModal({
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">Food Option</label>
+                  <select
+                    value={foodOption}
+                    onChange={(e) => setFoodOption(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-indigo-500 text-sm"
+                  >
+                    <option value="Included">Included</option>
+                    <option value="Optional / Available">Optional / Available</option>
+                    <option value="Not Available">Not Available</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">Notice Period (Days)</label>
+                  <input
+                    type="number"
+                    value={noticePeriodDays}
+                    onChange={(e) => setNoticePeriodDays(e.target.value)}
+                    placeholder="e.g. 30"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-indigo-500 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-300 mb-1">Tagline</label>
+                <input
+                  type="text"
+                  value={tagline}
+                  onChange={(e) => setTagline(e.target.value)}
+                  placeholder="e.g. Premium student living with attached washrooms & Wi-Fi"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-indigo-500 text-sm"
+                />
+              </div>
+
               <div>
                 <label className="block font-semibold text-slate-300 mb-1">Amenities (comma-separated)</label>
                 <input
@@ -748,6 +807,38 @@ export function EditListingModal({
                   placeholder="Single, Double, Triple..."
                   className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-indigo-500 text-sm"
                 />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-300 mb-1">
+                  Room Features (comma-separated)
+                </label>
+                <textarea
+                  rows={2}
+                  value={roomFeaturesStr}
+                  onChange={(e) => setRoomFeaturesStr(e.target.value)}
+                  placeholder="Attached Bathroom, Bed & Mattress, Study Table, Wardrobe, AC, Balcony..."
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-indigo-500 text-sm"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Displayed as bullet points in the &ldquo;Room Features&rdquo; section on the PG details page.
+                </p>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-300 mb-1">
+                  House Guidelines (comma-separated)
+                </label>
+                <textarea
+                  rows={2}
+                  value={houseRulesStr}
+                  onChange={(e) => setHouseRulesStr(e.target.value)}
+                  placeholder="Gate closes at 10:30 PM, Visitors allowed till 8 PM, No smoking or alcohol, Keep common areas clean..."
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-indigo-500 text-sm"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Displayed as bullet points in the &ldquo;House Guidelines&rdquo; section on the PG details page.
+                </p>
               </div>
             </div>
           )}
