@@ -37,6 +37,7 @@ if (!supabaseUrl || !supabaseKey) {
   process.exit(1)
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 console.log('🚀 Locano Bulk Database Seeder Started...')

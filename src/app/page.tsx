@@ -268,6 +268,8 @@ export default function AdminPage() {
         area: item.area || "Saralebettu Road",
         approximate_location: item.approximate_location || "",
         nearest_landmark: item.nearest_landmark || "",
+        latitude: item.latitude ?? null,
+        longitude: item.longitude ?? null,
         monthly_rent_from: item.monthly_rent_from || 8000,
         security_deposit: item.security_deposit || 16000,
         gender: item.gender || "Boys",
@@ -294,6 +296,8 @@ export default function AdminPage() {
           area: newAcc.area,
           approximate_location: newAcc.approximate_location,
           nearest_landmark: newAcc.nearest_landmark,
+          latitude: newAcc.latitude,
+          longitude: newAcc.longitude,
           monthly_rent_from: newAcc.monthly_rent_from,
           security_deposit: newAcc.security_deposit,
           gender: newAcc.gender,
@@ -345,6 +349,8 @@ export default function AdminPage() {
           is_demo: false,
           updated_at: new Date().toISOString(),
         }
+        if (item.latitude !== undefined) updatePayload.latitude = item.latitude
+        if (item.longitude !== undefined) updatePayload.longitude = item.longitude
         if (item.sample_image !== undefined || item.images !== undefined) {
           const imgs = item.images !== undefined ? item.images : (item.sample_image ? [item.sample_image] : [])
           const cover = item.sample_image || (imgs.length > 0 ? imgs[0] : null)
@@ -410,6 +416,8 @@ export default function AdminPage() {
         area: item.area || "Tiger Circle",
         approximate_location: item.approximate_location || item.area || "",
         nearest_landmark: item.nearest_landmark || "",
+        latitude: item.latitude ?? null,
+        longitude: item.longitude ?? null,
         pricing_type: item.pricing_type || "meals_per_day",
         meals_per_day_pricing: item.meals_per_day_pricing,
         meal_combinations_pricing: item.meal_combinations_pricing,
@@ -436,6 +444,8 @@ export default function AdminPage() {
           area: newMess.area,
           approximate_location: newMess.approximate_location,
           nearest_landmark: newMess.nearest_landmark,
+          latitude: newMess.latitude,
+          longitude: newMess.longitude,
           pricing_type: newMess.pricing_type,
           meals_per_day_pricing: newMess.meals_per_day_pricing,
           meal_combinations_pricing: newMess.meal_combinations_pricing,
@@ -479,6 +489,8 @@ export default function AdminPage() {
           is_demo: false,
           updated_at: new Date().toISOString(),
         }
+        if (item.latitude !== undefined) updatePayload.latitude = item.latitude
+        if (item.longitude !== undefined) updatePayload.longitude = item.longitude
         if (item.pricing_type !== undefined) updatePayload.pricing_type = item.pricing_type
         if (item.meals_per_day_pricing !== undefined) updatePayload.meals_per_day_pricing = item.meals_per_day_pricing
         if (item.meal_combinations_pricing !== undefined) updatePayload.meal_combinations_pricing = item.meal_combinations_pricing

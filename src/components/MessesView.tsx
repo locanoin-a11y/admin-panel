@@ -43,6 +43,8 @@ export interface MessItem {
   images?: string[]
   nearest_landmark?: string
   description?: string
+  latitude?: number | null
+  longitude?: number | null
 }
 
 interface MessesViewProps {

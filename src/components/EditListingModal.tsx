@@ -18,6 +18,7 @@ import {
 import { AccommodationItem } from "./AccommodationsView"
 import { MessItem } from "./MessesView"
 import { MultiImageUploader } from "./MultiImageUploader"
+import { MapLocationPicker } from "./MapLocationPicker"
 
 interface EditListingModalProps {
   isOpen: boolean
@@ -71,6 +72,8 @@ export function EditListingModal({
   const [area, setArea] = useState("")
   const [approximateLocation, setApproximateLocation] = useState("")
   const [nearestLandmark, setNearestLandmark] = useState("")
+  const [latitude, setLatitude] = useState<number | null>(null)
+  const [longitude, setLongitude] = useState<number | null>(null)
   const [status, setStatus] = useState<"published" | "pending" | "rejected" | "archived">("published")
   const [description, setDescription] = useState("")
   const [sampleImage, setSampleImage] = useState<string | null>(null)
@@ -142,6 +145,8 @@ export function EditListingModal({
       setArea(item.area || "")
       setApproximateLocation(item.approximate_location || "")
       setNearestLandmark(item.nearest_landmark || "")
+      setLatitude(item.latitude ?? null)
+      setLongitude(item.longitude ?? null)
       setStatus(item.status || "published")
       setDescription(item.description || "")
       const initialImages = Array.isArray(item.images) && item.images.length > 0
@@ -215,6 +220,8 @@ export function EditListingModal({
       // New Item Defaults
       setName("")
       setNearestLandmark("")
+      setLatitude(null)
+      setLongitude(null)
       setStatus("published")
       setDescription("")
       setImages([])
@@ -346,6 +353,8 @@ export function EditListingModal({
           food_option: foodOption,
           status,
           description: description.trim(),
+          latitude,
+          longitude,
           sample_image: sampleImage || (images.length > 0 ? images[0] : null),
           images,
         })
@@ -480,6 +489,8 @@ export function EditListingModal({
           timings: cleanTimings,
           status,
           description: description.trim(),
+          latitude,
+          longitude,
           sample_image: sampleImage || (images.length > 0 ? images[0] : null),
           images,
         })
@@ -678,6 +689,27 @@ export function EditListingModal({
                 />
               </div>
             </div>
+          </div>
+
+          {/* Section: Map Location Picker */}
+          <div className="space-y-2">
+            <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              Map Location & Coordinates
+            </h4>
+            <MapLocationPicker
+              latitude={latitude}
+              longitude={longitude}
+              areaName={area}
+              landmarkName={nearestLandmark}
+              onLocationSelect={(coords) => {
+                setLatitude(coords.lat)
+                setLongitude(coords.lng)
+              }}
+              onClearLocation={() => {
+                setLatitude(null)
+                setLongitude(null)
+              }}
+            />
           </div>
 
           {/* Section: Image Uploader */}

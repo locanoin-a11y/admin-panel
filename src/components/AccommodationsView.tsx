@@ -38,6 +38,8 @@ export interface AccommodationItem {
   notice_period_days?: number
   approximate_location?: string
   tagline?: string
+  latitude?: number | null
+  longitude?: number | null
 }
 
 interface AccommodationsViewProps {
@@ -243,9 +245,16 @@ export function AccommodationsView({
 
                     {/* Area */}
                     <td className="py-3.5 px-4 text-xs text-slate-300">
-                      <div className="flex items-center gap-1.5">
-                        <MapPin className="h-3.5 w-3.5 text-indigo-400 shrink-0" />
-                        <span>{item.area}</span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <div className="flex items-center gap-1.5">
+                          <MapPin className="h-3.5 w-3.5 text-indigo-400 shrink-0" />
+                          <span>{item.area}</span>
+                        </div>
+                        {item.latitude && item.longitude && (
+                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-400 font-mono border border-emerald-500/20">
+                            GPS Pinned
+                          </span>
+                        )}
                       </div>
                       {item.nearest_landmark && (
                         <span className="text-[11px] text-slate-400 block ml-5">{item.nearest_landmark}</span>
