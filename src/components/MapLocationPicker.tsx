@@ -176,10 +176,16 @@ export function MapLocationPicker({
   }, [latitude, longitude])
 
   // Address search using Nominatim (Rate-limit safe: triggered explicitly, not on keystroke)
-  const handleAddressSearch = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault()
+  const handleAddressSearch = async (e?: React.SyntheticEvent) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
     const query = searchQuery.trim() || `${areaName || ""} ${landmarkName || ""}`.trim()
-    if (!query) return
+    if (!query) {
+      setSearchError("Please enter an address, landmark, or area to search.")
+      return
+    }
 
     setIsSearching(true)
     setSearchError(null)
@@ -318,26 +324,38 @@ export function MapLocationPicker({
 
       {/* Address Search Bar */}
       <div className="relative">
-        <form onSubmit={handleAddressSearch} className="flex gap-2">
+        <div className="flex gap-2">
           <div className="relative flex-1">
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  void handleAddressSearch(e)
+                }
+              }}
               placeholder={areaName ? `Search address near ${areaName}...` : "Search address or landmark in Mangalore..."}
               className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-[#0066FF]"
             />
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
           <button
-            type="submit"
+            type="button"
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              void handleAddressSearch(e)
+            }}
             disabled={isSearching}
             className="px-3.5 py-2 rounded-xl bg-[#0066FF] hover:bg-blue-600 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 disabled:opacity-50"
           >
             {isSearching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Navigation className="w-3.5 h-3.5" />}
-            <span>{isSearching ? "Searching..." : "Find"}</span>
+            <span>{isSearching ? "Searching..." : "Find Location"}</span>
           </button>
-        </form>
+        </div>
 
         {/* Search Results Dropdown */}
         {searchResults.length > 0 && (
