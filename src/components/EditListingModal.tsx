@@ -18,7 +18,7 @@ import {
 } from "lucide-react"
 import { AccommodationItem } from "./AccommodationsView"
 import { MessItem } from "./MessesView"
-import { ImageUploader } from "./ImageUploader"
+import { MultiImageUploader } from "./MultiImageUploader"
 
 interface EditListingModalProps {
   isOpen: boolean
@@ -76,6 +76,7 @@ export function EditListingModal({
   const [status, setStatus] = useState<"published" | "pending" | "rejected" | "archived">("published")
   const [description, setDescription] = useState("")
   const [sampleImage, setSampleImage] = useState<string | null>(null)
+  const [images, setImages] = useState<string[]>([])
 
   // Accommodation specific
   const [monthlyRentFrom, setMonthlyRentFrom] = useState<string | number>(8000)
@@ -140,7 +141,11 @@ export function EditListingModal({
       setNearestLandmark(item.nearest_landmark || "")
       setStatus(item.status || "published")
       setDescription(item.description || "")
-      setSampleImage(item.sample_image || (item.images && item.images[0]) || null)
+      const initialImages = Array.isArray(item.images) && item.images.length > 0
+        ? item.images
+        : (item.sample_image && !item.sample_image.includes("hero-coast") && !item.sample_image.includes("mess-tiffin") && !item.sample_image.includes("mess-thali") ? [item.sample_image] : [])
+      setImages(initialImages)
+      setSampleImage(item.sample_image || (initialImages.length > 0 ? initialImages[0] : null))
 
       if (mode === "accommodation") {
         const acc = item as AccommodationItem
@@ -205,6 +210,7 @@ export function EditListingModal({
       setNearestLandmark("")
       setStatus("published")
       setDescription("")
+      setImages([])
       setSampleImage(null)
 
       if (mode === "accommodation") {
@@ -317,7 +323,8 @@ export function EditListingModal({
           food_option: foodOption,
           status,
           description: description.trim(),
-          sample_image: sampleImage,
+          sample_image: sampleImage || (images.length > 0 ? images[0] : null),
+          images,
         })
       } else {
         // Validate Mess Pricing
@@ -450,7 +457,8 @@ export function EditListingModal({
           timings: cleanTimings,
           status,
           description: description.trim(),
-          sample_image: sampleImage,
+          sample_image: sampleImage || (images.length > 0 ? images[0] : null),
+          images,
         })
       }
       onClose()
@@ -654,20 +662,16 @@ export function EditListingModal({
             <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
               Photographs
             </h4>
-            <ImageUploader
-              currentImageUrl={sampleImage}
+            <MultiImageUploader
+              images={images}
+              coverImage={sampleImage}
+              onChange={(updatedImages, updatedCover) => {
+                setImages(updatedImages)
+                setSampleImage(updatedCover)
+              }}
               mode={mode}
               listingId={item?.id}
-              onImageUploaded={(url) => setSampleImage(url)}
-              onImageRemoved={() => setSampleImage(null)}
-              onDirectReplace={
-                item?.id && onReplaceListingImage
-                  ? async (url) => {
-                      await onReplaceListingImage(item.id, mode, url)
-                      setSampleImage(url)
-                    }
-                  : undefined
-              }
+              maxPhotos={10}
             />
           </div>
 

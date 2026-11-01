@@ -275,8 +275,8 @@ export default function AdminPage() {
         food_option: item.food_option || "Optional",
         status: item.status || "published",
         description: item.description || "",
-        sample_image: item.sample_image || "/hero-coast.png",
-        images: item.sample_image ? [item.sample_image] : [],
+        sample_image: item.sample_image || (item.images && item.images[0]) || "/hero-coast.png",
+        images: item.images && item.images.length > 0 ? item.images : (item.sample_image ? [item.sample_image] : []),
       }
 
       setAccommodations((prev) => [newAcc, ...prev])
@@ -330,9 +330,11 @@ export default function AdminPage() {
           is_demo: false,
           updated_at: new Date().toISOString(),
         }
-        if (item.sample_image !== undefined) {
-          updatePayload.sample_image = item.sample_image
-          updatePayload.images = item.sample_image ? [item.sample_image] : []
+        if (item.sample_image !== undefined || item.images !== undefined) {
+          const imgs = item.images !== undefined ? item.images : (item.sample_image ? [item.sample_image] : [])
+          const cover = item.sample_image || (imgs.length > 0 ? imgs[0] : null)
+          updatePayload.sample_image = cover
+          updatePayload.images = imgs
         }
         const { error } = await supabase
           .from("accommodation_listings")
@@ -405,8 +407,8 @@ export default function AdminPage() {
         meals_served: item.meals_served || ["Breakfast", "Lunch", "Dinner"],
         status: item.status || "published",
         description: item.description || "",
-        sample_image: item.sample_image || "/mess-tiffin.jpg",
-        images: item.sample_image ? [item.sample_image] : [],
+        sample_image: item.sample_image || (item.images && item.images[0]) || "/mess-tiffin.jpg",
+        images: item.images && item.images.length > 0 ? item.images : (item.sample_image ? [item.sample_image] : []),
       }
 
       setMesses((prev) => [newMess, ...prev])
@@ -468,9 +470,11 @@ export default function AdminPage() {
         if (item.weekly_holidays !== undefined) updatePayload.weekly_holidays = item.weekly_holidays
         if (item.timings !== undefined) updatePayload.timings = item.timings
         if (item.approximate_location !== undefined) updatePayload.approximate_location = item.approximate_location
-        if (item.sample_image !== undefined) {
-          updatePayload.sample_image = item.sample_image
-          updatePayload.images = item.sample_image ? [item.sample_image] : []
+        if (item.sample_image !== undefined || item.images !== undefined) {
+          const imgs = item.images !== undefined ? item.images : (item.sample_image ? [item.sample_image] : [])
+          const cover = item.sample_image || (imgs.length > 0 ? imgs[0] : null)
+          updatePayload.sample_image = cover
+          updatePayload.images = imgs
         }
         const { error } = await supabase
           .from("mess_listings")
