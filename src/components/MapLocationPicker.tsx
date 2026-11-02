@@ -1,9 +1,11 @@
 "use client"
 /* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
 
-import React, { useState, useEffect, useRef } from "react"
-import { Search, MapPin, CheckCircle2, Loader2, Navigation, RotateCcw, AlertCircle, Info } from "lucide-react"
+import React, { useState, useEffect, useRef, useCallback } from "react"
+import { Search, MapPin, CheckCircle2, Loader2, Navigation, RotateCcw, AlertCircle, Info, Crosshair } from "lucide-react"
 import "leaflet/dist/leaflet.css"
+
+type GpsStatus = "idle" | "requesting" | "success" | "denied" | "unavailable" | "timeout" | "error"
 
 interface MapLocationPickerProps {
   latitude?: number | null
@@ -44,8 +46,12 @@ export function MapLocationPicker({
     latitude && longitude ? { lat: latitude, lng: longitude } : null
   )
 
-  // Update position handler
-  const updatePosition = (lat: number, lng: number, address?: string) => {
+  // GPS / "Use Current Location" state
+  const [gpsStatus, setGpsStatus] = useState<GpsStatus>("idle")
+  const [gpsError, setGpsError] = useState<string | null>(null)
+
+  // Update position handler — declared before placeMarkerAt which depends on it
+  const updatePosition = useCallback((lat: number, lng: number, address?: string) => {
     const formatted = { lat: Number(lat.toFixed(6)), lng: Number(lng.toFixed(6)) }
     setCurrentCoords(formatted)
     if (address) {
@@ -53,8 +59,66 @@ export function MapLocationPicker({
     } else {
       setSelectedAddress(`Near ${areaName || "selected point"} (${formatted.lat}, ${formatted.lng})`)
     }
-    onLocationSelect({ ...formatted, address: address || selectedAddress || undefined })
-  }
+    onLocationSelect({ ...formatted, address: address || undefined })
+  }, [areaName, onLocationSelect])
+
+  // Reusable helper to build/reuse the custom Leaflet divIcon
+  const getCustomIcon = useCallback((L: typeof import("leaflet")) =>
+    L.divIcon({
+      className: "custom-locano-map-pin",
+      html: `
+        <div style="
+          background: #0066FF;
+          width: 32px;
+          height: 32px;
+          border-radius: 50% 50% 50% 0;
+          transform: rotate(-45deg);
+          border: 3px solid white;
+          box-shadow: 0 4px 10px rgba(0,0,0,0.35);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        ">
+          <div style="
+            width: 10px;
+            height: 10px;
+            background: white;
+            border-radius: 50%;
+            transform: rotate(45deg);
+          "></div>
+        </div>
+      `,
+      iconSize: [32, 32],
+      iconAnchor: [16, 32],
+      popupAnchor: [0, -32],
+    }),
+  [])
+
+  // Shared helper: place or move marker and pan map to given coords
+  const placeMarkerAt = useCallback(
+    async (lat: number, lng: number, address?: string) => {
+      const L = (await import("leaflet")).default
+      const map = mapInstanceRef.current
+      if (!map) return
+
+      const icon = getCustomIcon(L)
+
+      if (markerRef.current) {
+        markerRef.current.setLatLng([lat, lng])
+      } else {
+        const marker = L.marker([lat, lng], { icon, draggable: true }).addTo(map)
+        marker.on("dragend", () => {
+          const pos = marker.getLatLng()
+          updatePosition(pos.lat, pos.lng)
+        })
+        markerRef.current = marker
+      }
+
+      map.setView([lat, lng], 17)
+      updatePosition(lat, lng, address)
+    },
+    [getCustomIcon, updatePosition]
+  )
 
   // Initialize or update Leaflet map on client mount
   useEffect(() => {
@@ -72,35 +136,8 @@ export function MapLocationPicker({
       const initialLng = longitude || MANGALURU_DEFAULT.lng
       const initialZoom = latitude && longitude ? 16 : 13
 
-      // Custom marker icon
-      const customIcon = L.divIcon({
-        className: "custom-locano-map-pin",
-        html: `
-          <div style="
-            background: #0066FF;
-            width: 32px;
-            height: 32px;
-            border-radius: 50% 50% 50% 0;
-            transform: rotate(-45deg);
-            border: 3px solid white;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.35);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          ">
-            <div style="
-              width: 10px;
-              height: 10px;
-              background: white;
-              border-radius: 50%;
-              transform: rotate(45deg);
-            "></div>
-          </div>
-        `,
-        iconSize: [32, 32],
-        iconAnchor: [16, 32],
-        popupAnchor: [0, -32],
-      })
+      // Reuse shared icon builder
+      const customIcon = getCustomIcon(L)
 
       const map = L.map(mapContainerRef.current, {
         center: [initialLat, initialLng],
@@ -162,7 +199,7 @@ export function MapLocationPicker({
         markerRef.current = null
       }
     }
-  }, [])
+  }, []) // intentionally empty — runs once on mount only
 
   // Sync coords if props change externally
   useEffect(() => {
@@ -221,61 +258,11 @@ export function MapLocationPicker({
     }
   }
 
-  // Select search candidate
+  // Select search candidate — now uses shared placeMarkerAt helper
   const handleSelectCandidate = (candidate: GeocodingResult) => {
     const lat = parseFloat(candidate.lat)
     const lng = parseFloat(candidate.lon)
-
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.setView([lat, lng], 16)
-
-      if (markerRef.current) {
-        markerRef.current.setLatLng([lat, lng])
-      } else {
-        import("leaflet").then((L) => {
-          const customIcon = L.default.divIcon({
-            className: "custom-locano-map-pin",
-            html: `
-              <div style="
-                background: #0066FF;
-                width: 32px;
-                height: 32px;
-                border-radius: 50% 50% 50% 0;
-                transform: rotate(-45deg);
-                border: 3px solid white;
-                box-shadow: 0 4px 10px rgba(0,0,0,0.35);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-              ">
-                <div style="
-                  width: 10px;
-                  height: 10px;
-                  background: white;
-                  border-radius: 50%;
-                  transform: rotate(45deg);
-                "></div>
-              </div>
-            `,
-            iconSize: [32, 32],
-            iconAnchor: [16, 32],
-          })
-
-          const marker = L.default
-            .marker([lat, lng], { icon: customIcon, draggable: true })
-            .addTo(mapInstanceRef.current)
-
-          marker.on("dragend", () => {
-            const pos = marker.getLatLng()
-            updatePosition(pos.lat, pos.lng)
-          })
-
-          markerRef.current = marker
-        })
-      }
-    }
-
-    updatePosition(lat, lng, candidate.display_name)
+    void placeMarkerAt(lat, lng, candidate.display_name)
     setSearchResults([])
   }
 
@@ -287,7 +274,56 @@ export function MapLocationPicker({
     }
     setCurrentCoords(null)
     setSelectedAddress(null)
+    setGpsStatus("idle")
+    setGpsError(null)
     if (onClearLocation) onClearLocation()
+  }
+
+  // Use Current Location — browser Geolocation API
+  const handleUseCurrentLocation = () => {
+    if (gpsStatus === "requesting") return
+
+    if (!navigator.geolocation) {
+      setGpsStatus("unavailable")
+      setGpsError("Geolocation is not supported by this browser.")
+      return
+    }
+
+    setGpsStatus("requesting")
+    setGpsError(null)
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude: lat, longitude: lng } = position.coords
+        void placeMarkerAt(lat, lng, `GPS location (accuracy ±${Math.round(position.coords.accuracy)}m)`)
+        setGpsStatus("success")
+        setGpsError(null)
+      },
+      (err) => {
+        switch (err.code) {
+          case err.PERMISSION_DENIED:
+            setGpsStatus("denied")
+            setGpsError("Location permission was denied. Please allow location access in your browser settings and try again.")
+            break
+          case err.POSITION_UNAVAILABLE:
+            setGpsStatus("unavailable")
+            setGpsError("GPS signal unavailable. Try moving to an area with better signal, or pin the location manually on the map.")
+            break
+          case err.TIMEOUT:
+            setGpsStatus("timeout")
+            setGpsError("Location request timed out. Please try again or pin the location manually.")
+            break
+          default:
+            setGpsStatus("error")
+            setGpsError("Could not retrieve your location. Please pin it manually on the map.")
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 12000,
+        maximumAge: 0,
+      }
+    )
   }
 
   return (
@@ -322,7 +358,7 @@ export function MapLocationPicker({
         )}
       </div>
 
-      {/* Address Search Bar */}
+      {/* Address Search Bar + Use Current Location */}
       <div className="relative">
         <div className="flex gap-2">
           <div className="relative flex-1">
@@ -357,6 +393,42 @@ export function MapLocationPicker({
           </button>
         </div>
 
+        {/* Use Current Location button */}
+        <div className="mt-2">
+          <button
+            type="button"
+            onClick={handleUseCurrentLocation}
+            disabled={gpsStatus === "requesting"}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-700 hover:bg-slate-600 border border-slate-600 text-xs text-slate-200 font-medium transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {gpsStatus === "requesting" ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-400" />
+                <span>Detecting location…</span>
+              </>
+            ) : (
+              <>
+                <Crosshair className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Use Current Location</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* GPS error / status feedback */}
+        {gpsError && (
+          <div className="mt-2 p-2.5 rounded-xl bg-rose-950/50 border border-rose-500/30 text-[11px] text-rose-300 flex items-start gap-2">
+            <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-rose-400" />
+            <span>{gpsError}</span>
+          </div>
+        )}
+        {gpsStatus === "success" && !gpsError && (
+          <div className="mt-2 p-2 rounded-xl bg-emerald-950/40 border border-emerald-500/25 text-[11px] text-emerald-300 flex items-center gap-2">
+            <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-400" />
+            <span>GPS coordinates detected. You can drag the marker to fine-tune the position.</span>
+          </div>
+        )}
+
         {/* Search Results Dropdown */}
         {searchResults.length > 0 && (
           <div className="absolute top-full left-0 right-0 z-30 mt-1 bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden max-h-48 overflow-y-auto">
@@ -390,7 +462,7 @@ export function MapLocationPicker({
         {!currentCoords && (
           <div className="absolute bottom-2.5 left-2.5 right-2.5 z-20 pointer-events-none">
             <div className="bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-lg px-3 py-1.5 text-center text-xs text-slate-300">
-              📍 Click on the map to place a location pin for this PG
+              📍 Click on the map or use GPS to place a location pin
             </div>
           </div>
         )}
